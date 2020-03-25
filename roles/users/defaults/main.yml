@@ -1,0 +1,13 @@
+---
+# defaults file for roles/users
+    users:
+      developer:
+        groups:
+          - docker
+        shell: /bin/bash
+        state: present
+    keys:
+      dev2:
+        name: developer
+        key: 'keys/a.fomin.pub'
+        state: present

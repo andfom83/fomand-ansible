@@ -1,0 +1,3 @@
+---
+# defaults file for roles/docker
+update_docker: no

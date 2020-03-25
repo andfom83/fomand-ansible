@@ -1,0 +1,10 @@
+---
+# tasks file for roles/docker
+- name: download shell  docker && docker-compose
+#  get_url: url=https://gist.githubusercontent.com/wdullaer/f1af16bd7e970389bad3/raw/install.sh dest=/root/install.sh
+  copy:
+    src: install.sh
+    dest: /root/install.sh
+
+- name: install docker && docker-compose
+  shell: 'chmod +x /root/install.sh && /root/install.sh'

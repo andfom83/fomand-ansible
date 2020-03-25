@@ -1,0 +1,4 @@
+---
+# handlers file for roles/nginx
+#- name: check config and restart nginx
+  

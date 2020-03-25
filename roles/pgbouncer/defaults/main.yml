@@ -1,0 +1,61 @@
+---
+# defaults file for roles/pgbouncer
+#db config
+api_db:
+   connection: pgsql
+   host: 'xx.yy.zz.mm'
+   base: test
+   schema: public
+   user: test
+   password: 'kjhjjshfuUUs'
+   port: 5432
+
+
+##########################################
+#pgbouncer config
+config:
+ db:
+   first: false
+   after: '^\[databases'
+   reg_ex: '^.\s=\shost'
+   conf_line: "* = host={{api_db.host}} port={{api_db.port}}"
+ port:
+   first: false
+   after: '^\[pgbouncer'
+   reg_ex: '^listen_port\s='
+   conf_line: "listen_port = {{api_db.port}}"
+ auth_type:
+   first: false
+   after: '^\[pgbouncer'
+   reg_ex: '^auth_type\s='
+   conf_line: "auth_type = md5"
+ auth_file:
+   first: false
+   after: '^\[pgbouncer'
+   reg_ex: '^auth_file\s='
+   conf_line: "auth_file = /etc/pgbouncer/userlist.txt"
+ admin_users:
+   first: false
+   after: '^\[pgbouncer'
+   reg_ex: '^admin_users\s='
+   conf_line: "admin_users = {{api_db.user}}"
+ pool_mode:
+   first: false
+   after: '^\[pgbouncer'
+   reg_ex: '^pool_mode\s='
+   conf_line: "pool_mode = session"
+ client_max_conn:
+   first: false
+   after: '^\[pgbouncer'
+   reg_ex: '^max_client_conn\s='
+   conf_line: "max_client_conn = 1000"
+ default_pool_size:
+   first: false
+   after: '^\[pgbouncer'
+   reg_ex: '^default_pool_size\s='
+   conf_line: "default_pool_size = 10"
+ ignore_startup_parameters:
+   first: false
+   after: '^\[pgbouncer'
+   reg_ex: '^ignore_startup_parameters\s='
+   conf_line: "ignore_startup_parameters = extra_float_digits"

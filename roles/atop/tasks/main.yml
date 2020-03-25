@@ -1,0 +1,9 @@
+---
+# tasks file for roles/atop
+- name: ensure atop is at the latest version
+  apt: name=atop state=latest update_cache=yes
+  register: result
+  ignore_errors: yes
+  until: result is not failed
+  retries: 6
+  delay: 5

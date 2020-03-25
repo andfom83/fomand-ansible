@@ -1,0 +1,13 @@
+---
+droplet_image: ubuntu-18-04-x64
+droplet_name: droplet-do-test
+droplet_size: s-4vcpu-8gb
+droplet_region: ams3
+droplet_ssh_keys:
+  - 'keys/a.fomin.pub'
+droplet_tags:
+  - test
+droplet_features:
+  - --enable-private-networking
+  - --enable-monitoring
+

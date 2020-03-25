@@ -1,0 +1,4 @@
+---
+# defaults file for cf-record
+domain: test.com
+subdomain: demo

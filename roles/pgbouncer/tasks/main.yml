@@ -1,0 +1,47 @@
+---
+# tasks file for roles/pgbouncer
+    - name: install pgbouncer
+      apt: name=pgbouncer state=latest update_cache=yes
+      become: yes
+    - name: get private_ip
+      shell: curl 169.254.169.254/metadata/v1/interfaces/private/0/ipv4/address && echo
+      register: result_priv
+    - set_fact: priv_ip="{{result_priv.stdout}}"
+
+    - name: get password md5sum
+      shell: echo -n {{api_db.password}}{{api_db.user}} | md5sum| cut -b -32
+      register: result_md5
+
+    - set_fact: pass_md5="{{result_md5.stdout}}"
+
+    - name: test
+      debug:
+        msg: "1 {{item.value.after}} {{item.value.reg_ex}} {{item.value.conf_line}}"
+      loop: "{{ lookup('dict', config) }}"
+
+    - name: edit config pgbouncer
+      lineinfile:
+        path: /etc/pgbouncer/pgbouncer.ini
+        firstmatch: "{{item.value.first}}"
+        insertafter: "{{item.value.after}}"
+        regexp: "{{item.value.reg_ex}}"
+        line: "{{item.value.conf_line}}"
+      loop: "{{ lookup('dict', config) }}"
+
+    - name: edit config pgbouncer IP
+      lineinfile:
+        path: /etc/pgbouncer/pgbouncer.ini
+        insertafter: ^\[pgbouncer'
+        regexp: '^listen_addr\s='
+        line: "listen_addr = {{priv_ip}}"
+
+    - name: edit userlist
+      copy:
+        dest: /etc/pgbouncer/userlist.txt
+        content: "\"{{api_db.user}}\" \"md5{{pass_md5}}\""
+
+    - name: restart pgbouncer
+      systemd:
+        name: pgbouncer
+        state: restarted
+

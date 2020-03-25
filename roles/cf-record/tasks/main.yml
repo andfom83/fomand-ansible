@@ -1,0 +1,59 @@
+---
+# tasks file for cf-record
+ - name: get cloudflare e-mail and cloudflare key
+   set_fact: cf_id="{{lookup('env','CF_ID')}}" cf_key="{{lookup('env','CF_KEY')}}"
+   tags: [always]
+
+ - name: get zone id
+   shell: |-
+     curl -sLX GET "https://api.cloudflare.com/client/v4/zones?name={{domain}}&status=active" \
+     -H "X-Auth-Email: {{cf_id}}" \
+     -H "X-Auth-Key: {{cf_key}}" \
+     -H "Content-Type: application/json"
+   register: results
+   tags: [always]
+
+ - debug: var=results.stdout
+   tags: [never, debug_all]
+
+ - name: set id
+   set_fact: cf_zone_id="{{results.stdout | from_json | json_query('result[0].id')}}"
+   tags: [always]
+
+ - debug: var=cf_zone_id
+   tags: [never, debug, debug_all]
+
+ - name: get record id
+   shell: |-
+     curl -sLX GET 'https://api.cloudflare.com/client/v4/zones/{{cf_zone_id}}/dns_records?name={{subdomain}}.{{domain}}' \
+     -H 'X-Auth-Email: {{cf_id}}' \
+     -H 'X-Auth-Key: {{cf_key}}' \
+     -H 'Content-Type: application/json'
+   register: results
+   tags: [always]
+
+ - debug: var=results.stdout
+   tags: [never, debug_all]
+
+ - name: set record
+   set_fact:
+     cf_record_id: "{{results.stdout | from_json | json_query('result[0].id')}}"
+     cf_record_ip: "{{results.stdout | from_json | json_query('result[0].content')}}"
+     cf_record_proxied: "{{results.stdout | from_json | json_query('result[0].proxied')}}"
+   tags: [never,updateip]
+
+ - debug: var=cf_record_id,cf_record_ip,cf_record_proxied
+   tags: [never, debug,debug_all]
+
+ - name: set new IP
+   shell: |-
+     curl -X PUT 'https://api.cloudflare.com/client/v4/zones/{{cf_zone_id}}/dns_records/{{cf_record_id}}' \
+     -H 'X-Auth-Email: {{cf_id}}' \
+     -H 'X-Auth-Key: {{cf_key}}' \
+     -H 'Content-Type: application/json' \
+     --data '{"type":"A","name":"{{subdomain}}","content":"{{new_ip}}","ttl":600,"proxied":{{cf_record_proxied|lower}}}'
+   register: result
+   tags: [never,updateip]
+
+ - debug: var=result.stdout
+   tags: [never, debug, debug_all]

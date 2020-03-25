@@ -1,0 +1,102 @@
+---
+# tasks file for ocfs2
+
+- name: check ocfs2 package is presented
+  become: yes
+  apt:
+    name: ocfs2-tools
+    state: present
+  tags: [never,init,init_ocfs2]
+
+#- name: check {{new_ocfs2_nodes | join(",")}}
+#  
+
+- name: stop o2cb & ocfs2 services
+  become: yes
+  systemd:
+    name: "{{item}}"
+    state: stopped
+  with_items:
+    - o2cb
+    - ocfs2
+  when: inventory_hostname in new_ocfs2_nodes
+  tags: [never,init,init_ocfs2]
+
+#- name: debug
+#  debug: msg="hostname {{hostvars[item].ansible_hostname}} ip {{hostvars[item].ansible_kvm.ipv4.address}}"
+#  with_items: "{{new_ocfs2_nodes}}"
+#  tags: [never,init_ocfs2]
+
+- name: add new node to ocfs2 cluster
+  become: yes
+  shell: o2cb_ctl -C -i -n {{hostvars[item].ansible_hostname}} -t node -a number=$(cat /etc/ocfs2/cluster.conf |grep node_count|awk '{print $3}') -a ip_address={{hostvars[item].ansible_kvm.ipv4.address}} -a ip_port=7777 -a cluster={{ocfs2_cluster_name}}
+  with_items: "{{new_ocfs2_nodes}}"
+  when: inventory_hostname not in new_ocfs2_nodes
+  ignore_errors: yes
+  tags: [never,init,init_ocfs2]
+
+- name: get config file from basic node
+  slurp: src=/etc/ocfs2/cluster.conf
+  register: config
+  when: inventory_hostname == basic_ocfs2_node
+  tags: [always]
+
+- name: echo config content
+  debug: msg="{{hostvars[basic_ocfs2_node].config.content|b64decode}}"
+  tags: [never,debug]
+
+- name: create config file
+  become: yes
+  shell: mkdir -p /etc/ocfs2/; mkdir -p {{ocfs2_mount_dir}}; echo {{hostvars[basic_ocfs2_node].config.content}} | base64 -d - > /etc/ocfs2/cluster.conf
+  args:
+    warn: false
+  when: inventory_hostname in new_ocfs2_nodes
+  tags: [never,init,init_ocfs2]
+
+- name: edit fstab
+  become: yes
+  lineinfile:
+    path: /etc/fstab
+    regexp: "^{{ocfs2_device}}"
+    line: "{{ocfs2_device}} {{ocfs2_mount_dir}}	ocfs2	_netdev 0 0"
+  when: inventory_hostname in new_ocfs2_nodes
+  tags: [never,init,init_ocfs2]
+
+- name: edit ocfs2 defaults
+  become: yes
+  lineinfile:
+    path: /etc/default/o2cb
+    regexp: "{{item.regexp}}"
+    line: "{{item.line}}"
+  with_items:
+    - {"regexp":"^O2CB_ENABLED=","line":"O2CB_ENABLED=true"}
+    - {"regexp":"O2CB_IDLE_TIMEOUT_MS=","line":"O2CB_IDLE_TIMEOUT_MS=5000"}
+  when: inventory_hostname in new_ocfs2_nodes
+  tags: [never,init,init_ocfs2]
+
+
+- name: start o2cb service
+  become: yes
+  systemd:
+    name: o2cb
+    state: started
+  when: inventory_hostname in new_ocfs2_nodes
+  tags: [never,init,init_ocfs2]
+
+- name: check o2cb cluster status
+  shell: o2cb cluster-status
+  register: o2cb_status
+  failed_when: "'offline' in o2cb_status.stdout"
+  tags: [always]
+
+- name: start ocfs2 service
+  become: yes
+  systemd:
+    name: ocfs2
+    state: started
+  when: inventory_hostname in new_ocfs2_nodes
+  tags: [never,init,init_ocfs2]
+
+
+
+#- name: 

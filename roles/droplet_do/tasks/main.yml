@@ -1,0 +1,66 @@
+---
+# tasks file for droplet_crt
+
+- name: check if droplet {{droplet_name}} exists
+  shell: doctl compute droplet list|grep -q {{droplet_name}}
+  register: result
+  failed_when: false
+
+- name: set if droplet {{droplet_name}} exists
+  set_fact: exist='{%if (result.rc == 0) %}True{% else %}False{% endif %}'
+
+- name: get ssh key fingerprints
+  shell: ssh-keygen -E MD5 -lf {{item}} | awk '{print $2}'|cut -b 5-
+  loop: "{{droplet_ssh_keys|flatten(levels=1)}}"
+  register: ssh_key
+  when: not exist
+
+- set_fact: droplet_ssh_keys="{{ssh_key|json_query('results[*].stdout')|join(',')}}"
+
+#- debug: var=item.stdout
+#  loop: "{{ssh_key.results|flatten(levels=1)}}"
+
+#- debug: var=droplet_ssh_keys
+
+#- debug: msg="doctl compute droplet create --wait {{droplet_name}} --size {{droplet_size}} --image {{droplet_image}}  --region {{droplet_region}} --ssh-keys {{droplet_ssh_keys}} --tag-names {{droplet_tags|join(',')}} {{droplet_features|join(' ')}} --output json"
+
+#- set_fact: droplet_created="{{ lookup('file','test.txt') | from_json }}"
+
+#- debug: var=droplet_created
+
+#- debug: msg="{{droplet_created[0]|json_query('networks.v4[0].ip_address')}}"
+
+- name: create droplet
+  shell: doctl compute droplet create --wait {{droplet_name}} --size {{droplet_size}} --image {{droplet_image}}  --region {{droplet_region}} --ssh-keys {{droplet_ssh_keys}} --tag-names {{droplet_tags|join(',')}} {{droplet_features|join(' ')}} --output json
+  register: droplet_created
+  when: not exist
+
+#- copy: content="{{droplet_created.stdout}}" dest=test.txt
+
+#- debug: var=droplet_created.stdout
+
+#- debug: msg="{{droplet_created.stdout[0]}}"
+
+- set_fact: droplet_id="{{droplet_created.stdout | from_json | json_query('[0].id')}}"
+  when: not exist
+
+- set_fact: droplet_ip="{{droplet_created.stdout | from_json | json_query('[0].networks.v4[0].ip_address')}}"
+  when: not exist
+
+- set_fact: droplet_priv_ip="{{droplet_created.stdout | from_json | json_query('[0].networks.v4[1].ip_address')}}"
+  when: not exist
+
+- name: get droplet {{droplet_name}} info
+  shell: doctl compute droplet list --output json
+  register: droplet_info
+
+- set_fact: droplet_info="{{droplet_info.stdout | from_json}}"
+  when: exist
+
+- set_fact: test={% for droplet in droplet_info %}{% if droplet.name == droplet_name %}{{droplet.id}}{% endif %}{% endfor %}
+  when: exist
+
+- debug: var=test
+
+- debug: var=droplet_id,droplet_ip,droplet_priv_ip 
+  when: not exist 

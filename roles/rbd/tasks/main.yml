@@ -1,0 +1,84 @@
+---
+# tasks file for rbd
+
+- debug: msg="Not supported client OS"
+  when: ansible_distribution != "Ubuntu"
+  tags: [always]
+
+- meta: end_host
+  when: ansible_distribution != "Ubuntu"
+  tags: [always]
+
+- apt_key:
+    url: https://download.ceph.com/keys/release.asc
+  become: yes
+  tags: [never,init,init_rbd]
+
+- apt_repository:
+    repo: deb https://download.ceph.com/debian-{{ceph_release}}/ {{ansible_lsb.codename}} main
+    filename: ceph
+    state: present
+  become: yes
+  tags: [never,init,init_rbd]
+
+- apt:
+    name: ceph-common
+    state: present
+  become: yes
+  tags: [never,init,init_rbd]
+
+- copy:
+    src: ceph/
+    dest: /etc/ceph
+    owner: root
+    group: ceph
+    mode: 0640
+  become: yes
+  tags: [never,init,init_rbd]
+    
+- name: register mapped device
+  shell: rbd device list --name {{rbd_name}} --format json
+  become: yes
+  register: results
+  tags: [always]
+
+- name: set rbd device variable
+  set_fact: rbd_device="{{ results.stdout | from_json | json_query('[0].device') }}"
+  tags: [always]
+
+- debug: var=rbd_device
+  tags: [never, debug]
+
+- name: map rbd device
+  shell: rbd map --image {{rbd_path}} --name {{rbd_name}}
+  when: rbd_device == ""
+  become: yes
+  tags: [never, init, init_rbd]
+
+- name: register mapped device
+  shell: rbd device list --name {{rbd_name}} --format json
+  when: rbd_device == ""
+  become: yes
+  register: results
+  tags: [never, init, init_rbd]
+
+- name: set rbd device variable
+  set_fact: rbd_device="{{ results.stdout | from_json | json_query('[0].device') }}"
+  when: rbd_device == ""
+  tags: [never, init, init_rbd]
+
+- name: set rbdmap config
+  become: yes
+  lineinfile:
+    path: /etc/ceph/rbdmap
+    regexp: "^{{rbd_path}}"
+    line: "{{rbd_path}}            name={{rbd_name}},keyring=/etc/ceph/ceph.{{rbd_name}}.keyring"
+  when: rbd_device != ""
+  tags: [always]
+
+- debug: var=rbd_device
+  tags: [never, debug]
+
+- name: set ocfs2 device variable
+  set_fact: ocfs2_device="{{rbd_device}}"
+  tags: [always]

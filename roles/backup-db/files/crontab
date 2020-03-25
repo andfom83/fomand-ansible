@@ -1,0 +1,2 @@
+2 * * * * /bin/bash /usr/local/bin/backup.sh &> /var/log/backup-cron.log
+0 * * * * /usr/bin/nice -n 19 /usr/bin/ionice -c2 -n7 /bin/bash /usr/local/bin/backupdb.sh

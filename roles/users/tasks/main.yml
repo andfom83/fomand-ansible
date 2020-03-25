@@ -1,0 +1,18 @@
+---
+# tasks file for roles/users
+  - name: add users
+    user:
+      name: "{{ item.key }}"
+      shell: "{{ item.value.shell }}"
+      groups: "{{item.value.groups}}"
+      append: yes
+      state: "{{ item.value.state }}"
+    loop: "{{ lookup('dict', users, wantlist=True) }}"
+
+  - name: add keys
+    authorized_key:
+      user: "{{ item.value.name }}"
+      key: "{{ lookup('file', item.value.key) }}"
+      state: "{{ item.value.state }}"
+    loop: "{{ lookup('dict', keys) }}"
+

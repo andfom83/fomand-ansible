@@ -1,0 +1,4 @@
+---
+# defaults file for ocfs2
+ocfs2_cluster_name: ocfs2
+ocfs2_mount_dir: /images3

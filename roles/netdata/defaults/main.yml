@@ -1,0 +1,13 @@
+---
+# defaults file for roles/netdata
+update_netdata: no
+netdata_alarm:
+  active_telegramm:
+    regexp: '^SEND_TELEGRAM='
+    line: 'SEND_TELEGRAM="YES"'
+  bot:
+    regexp: '^TELEGRAM_BOT_TOKEN='
+    line: 'TELEGRAM_BOT_TOKEN=""'
+  recipients:
+    regexp: '^DEFAULT_RECIPIENT_TELEGRAM='
+    line: 'DEFAULT_RECIPIENT_TELEGRAM=""'

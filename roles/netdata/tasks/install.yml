@@ -1,0 +1,25 @@
+- name: download netdata
+  become: yes
+  get_url: url=https://my-netdata.io/kickstart-static64.sh dest=/root/netdata.sh force=yes
+- name: install netdata
+  become: yes
+  shell: 'chmod +x /root/netdata.sh && /root/netdata.sh --stable-channel --non-interactive'
+- name: copy file
+  become: yes
+  copy:
+    src: /opt/netdata/usr/lib/netdata/conf.d/health_alarm_notify.conf
+    dest: /opt/netdata/etc/netdata/health_alarm_notify.conf
+    force: no
+    remote_src: yes
+- name: edit config
+  become: yes
+  lineinfile:
+    path: /opt/netdata/etc/netdata/health_alarm_notify.conf
+    regexp: "{{item.value.regexp}}"
+    line: "{{item.value.line}}"
+  loop: "{{ lookup('dict', netdata_alarm) }}"
+- name: restart netdata
+  become: yes
+  systemd:
+    name: netdata
+    state: restarted

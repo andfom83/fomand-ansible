@@ -1,0 +1,51 @@
+---
+# tasks file for roles/backup-db
+- name: copy backupdb script
+  copy:
+    src: backupdb.sh
+    dest: /usr/local/bin/backupdb.sh
+    mode: 0755
+
+- name: copy backup rotation script
+  copy: 
+    src: backup.sh
+    dest: /usr/local/bin/backup.sh
+    mode: 0755
+
+- name: create backup folder
+  file:
+    path: /backup/incoming
+    state: directory
+
+- name: create backup folder
+  file:
+    path: /backup/backup.hourly
+    state: directory
+
+- name: create backup folder
+  file:
+    path: /backup/backup.daily
+    state: directory
+
+- name: create backup folder
+  file:
+    path: /backup/backup.monthly
+    state: directory
+
+- name: create backup folder
+  file:
+    path: /backup/backup.weekly
+    state: directory
+
+- name: set crontab backup db
+  cron:
+    name: backup db
+    minute: "0"
+    job: /usr/bin/nice -n 19 /usr/bin/ionice -c2 -n7 /bin/bash /usr/local/bin/backupdb.sh
+
+- name: set crontab rotate backups
+  cron:
+    name: rotate backups
+    minute: "5"
+    job: /bin/bash /usr/local/bin/backup.sh >> /var/log/backup-cron.log
+

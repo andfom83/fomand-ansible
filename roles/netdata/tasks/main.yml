@@ -1,0 +1,11 @@
+---
+# tasks file for roles/nginx
+- name: check if nginx present
+  shell: command -v /opt/netdata/bin/netdata
+  register: result
+  failed_when: false
+
+- debug: var=update_netdata|bool,result.rc
+  
+- include_tasks: install.yml
+  when: update_netdata|bool or result.rc != 0

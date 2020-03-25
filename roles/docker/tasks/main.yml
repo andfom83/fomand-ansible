@@ -1,0 +1,11 @@
+---
+# tasks file for roles/nginx
+- name: check if docker-compose present
+  shell: command -v docker-compose
+  register: result
+  failed_when: false
+
+- debug: var=update_docker|bool,result.rc
+  
+- include_tasks: install.yml
+  when: update_docker|bool or result.rc != 0

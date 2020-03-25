@@ -1,0 +1,11 @@
+---
+# tasks file for roles/nginx
+- name: check if nginx present
+  shell: command -v nginx
+  register: result
+  failed_when: false
+
+- debug: var=update_nginx|bool,result.rc
+  
+- include_tasks: install.yml
+  when: update_nginx|bool or result.rc != 0

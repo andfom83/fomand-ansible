@@ -1,0 +1,29 @@
+---
+# tasks file for roles/haproxy
+ - apt_repository:
+     repo: ppa:vbernat/haproxy-1.9
+
+ - name: Update repositories cache and install "haproxy" package
+   apt:
+      name: haproxy
+      update_cache: yes
+      state: latest
+   register: result
+   ignore_errors: yes
+   until: result is not failed
+   retries: 6
+   delay: 5
+
+ - name: add config haproxy
+   template: src=haproxy.cfg dest=/etc/haproxy/haproxy.cfg owner=root group=root mode=0644
+
+ - name: Create ssl haproxy
+   template: src=bcf.pem dest=/etc/haproxy/bcf.pem owner=root group=root mode=0600
+
+# - name: add Diffie-Helman group
+#   shell: openssl dhparam -out /etc/haproxy/dhparam.pem 4096
+
+ - name: restart haproxy
+   systemd:
+      name: haproxy
+      state: restarted

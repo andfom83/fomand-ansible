@@ -1,0 +1,41 @@
+---
+# tasks file for roles/cloud-stub
+- name: disable default sites
+  file:
+    dest: /etc/nginx/sites-enabled/{{item}}
+    state: absent
+  with_items: "{{default_sites}}"
+  tags: [never,stubon]
+- name: enable stub sites
+  file:
+    src: /etc/nginx/sites-available/{{item}}
+    dest: /etc/nginx/sites-enabled/{{item}}
+    state: link
+  with_items: "{{stub_sites}}"
+  tags: [never,stubon]
+- name: enable default sites
+  file:
+    src: /etc/nginx/sites-available/{{item}}
+    dest: /etc/nginx/sites-enabled/{{item}}
+    state: link
+  with_items: "{{default_sites}}"
+  tags: [never,stuboff]
+- name: disable stub sites
+  file:
+    dest: /etc/nginx/sites-enabled/{{item}}
+    state: absent
+  with_items: "{{stub_sites}}"
+  tags: [never,stuboff]
+- name: Check NGINX configs
+  shell: "/usr/sbin/nginx -t"
+  register: nginx_config_status
+  tags: [always]
+- name: NGINX test status
+  debug: var=nginx_config_status.stdout
+  tags: [ never, debug, debug_all ]
+
+- name: restart NGINX
+  systemd:
+    name: nginx
+    state: restarted
+  tags: [never,stubon,stuboff]
